@@ -8,31 +8,30 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var task string
-
-type Request struct {
-	Task string `json:"task"`
-}
-
 func GetHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "hello, ", task)
+	var tasks []Message
+	DB.Find(&tasks)
+	json.NewEncoder(w).Encode(tasks)
 }
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
-	var request Request
+	var request Message
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
-	task = request.Task
+	DB.Create(&request)
 	fmt.Fprintln(w, "Task added successfully")
 }
 
 func main() {
-	router := mux.NewRouter()
+	InitDB()
 
-	router.HandleFunc("/api/hello", GetHandler).Methods("GET")
-	router.HandleFunc("/api/hello", PostHandler).Methods("POST")
+	DB.AutoMigrate(&Message{})
+
+	router := mux.NewRouter()
+	router.HandleFunc("/api/get", GetHandler).Methods("GET")
+	router.HandleFunc("/api/post", PostHandler).Methods("POST")
 	http.ListenAndServe(":8080", router)
 }
