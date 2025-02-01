@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -22,7 +21,7 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	DB.Create(&request)
-	fmt.Fprintln(w, "Task added successfully")
+	json.NewEncoder(w).Encode(request)
 }
 
 func main() {
