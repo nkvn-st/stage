@@ -53,7 +53,7 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	DB.Unscoped().Delete(&Message{}, id)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Message was deleted"})
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func main() {
