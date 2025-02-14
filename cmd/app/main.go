@@ -1,12 +1,14 @@
 package main
 
 import (
-	"net/http"
+	"log"
 	"stage/internal/database"
 	"stage/internal/handlers"
 	"stage/internal/messageservice"
+	"stage/internal/web/messages"
 
-	"github.com/gorilla/mux"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
@@ -15,12 +17,18 @@ func main() {
 
 	repo := messageservice.NewMessageRepository(database.DB)
 	service := messageservice.NewService(repo)
+
 	handler := handlers.NewHandler(service)
 
-	router := mux.NewRouter()
-	router.HandleFunc("/api/get", handler.GetMessageHandler).Methods("GET")
-	router.HandleFunc("/api/post", handler.PostMessageHandler).Methods("POST")
-	router.HandleFunc("/api/patch/{id}", handler.PatchMessageHandler).Methods("PATCH")
-	router.HandleFunc("/api/delete/{id}", handler.DeleteMessageHandler).Methods("DELETE")
-	http.ListenAndServe(":8080", router)
+	e := echo.New()
+
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	strictHandler := messages.NewStrictHandler(handler, nil)
+	messages.RegisterHandlers(e, strictHandler)
+
+	if err := e.Start(":8080"); err != nil {
+		log.Fatalf("failed to start with err: %v", err)
+	}
 }
