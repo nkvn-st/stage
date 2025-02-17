@@ -24,8 +24,8 @@ type Message struct {
 // PostMessagesJSONRequestBody defines body for PostMessages for application/json ContentType.
 type PostMessagesJSONRequestBody = Message
 
-// PatchMessagesIdJSONRequestBody defines body for PatchMessagesId for application/json ContentType.
-type PatchMessagesIdJSONRequestBody = Message
+// PatchMessageByIdJSONRequestBody defines body for PatchMessageById for application/json ContentType.
+type PatchMessageByIdJSONRequestBody = Message
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -37,10 +37,10 @@ type ServerInterface interface {
 	PostMessages(ctx echo.Context) error
 	// Delete message by id
 	// (DELETE /messages/{id})
-	DeleteMessagesId(ctx echo.Context, id uint) error
+	DeleteMessageById(ctx echo.Context, id uint) error
 	// Update message by id
 	// (PATCH /messages/{id})
-	PatchMessagesId(ctx echo.Context, id uint) error
+	PatchMessageById(ctx echo.Context, id uint) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -66,8 +66,8 @@ func (w *ServerInterfaceWrapper) PostMessages(ctx echo.Context) error {
 	return err
 }
 
-// DeleteMessagesId converts echo context to params.
-func (w *ServerInterfaceWrapper) DeleteMessagesId(ctx echo.Context) error {
+// DeleteMessageById converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteMessageById(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "id" -------------
 	var id uint
@@ -78,12 +78,12 @@ func (w *ServerInterfaceWrapper) DeleteMessagesId(ctx echo.Context) error {
 	}
 
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.DeleteMessagesId(ctx, id)
+	err = w.Handler.DeleteMessageById(ctx, id)
 	return err
 }
 
-// PatchMessagesId converts echo context to params.
-func (w *ServerInterfaceWrapper) PatchMessagesId(ctx echo.Context) error {
+// PatchMessageById converts echo context to params.
+func (w *ServerInterfaceWrapper) PatchMessageById(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "id" -------------
 	var id uint
@@ -94,7 +94,7 @@ func (w *ServerInterfaceWrapper) PatchMessagesId(ctx echo.Context) error {
 	}
 
 	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.PatchMessagesId(ctx, id)
+	err = w.Handler.PatchMessageById(ctx, id)
 	return err
 }
 
@@ -128,8 +128,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 
 	router.GET(baseURL+"/messages", wrapper.GetMessages)
 	router.POST(baseURL+"/messages", wrapper.PostMessages)
-	router.DELETE(baseURL+"/messages/:id", wrapper.DeleteMessagesId)
-	router.PATCH(baseURL+"/messages/:id", wrapper.PatchMessagesId)
+	router.DELETE(baseURL+"/messages/:id", wrapper.DeleteMessageById)
+	router.PATCH(baseURL+"/messages/:id", wrapper.PatchMessageById)
 
 }
 
@@ -166,34 +166,34 @@ func (response PostMessages201JSONResponse) VisitPostMessagesResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteMessagesIdRequestObject struct {
+type DeleteMessageByIdRequestObject struct {
 	Id uint `json:"id"`
 }
 
-type DeleteMessagesIdResponseObject interface {
-	VisitDeleteMessagesIdResponse(w http.ResponseWriter) error
+type DeleteMessageByIdResponseObject interface {
+	VisitDeleteMessageByIdResponse(w http.ResponseWriter) error
 }
 
-type DeleteMessagesId204Response struct {
+type DeleteMessageById204Response struct {
 }
 
-func (response DeleteMessagesId204Response) VisitDeleteMessagesIdResponse(w http.ResponseWriter) error {
+func (response DeleteMessageById204Response) VisitDeleteMessageByIdResponse(w http.ResponseWriter) error {
 	w.WriteHeader(204)
 	return nil
 }
 
-type PatchMessagesIdRequestObject struct {
+type PatchMessageByIdRequestObject struct {
 	Id   uint `json:"id"`
-	Body *PatchMessagesIdJSONRequestBody
+	Body *PatchMessageByIdJSONRequestBody
 }
 
-type PatchMessagesIdResponseObject interface {
-	VisitPatchMessagesIdResponse(w http.ResponseWriter) error
+type PatchMessageByIdResponseObject interface {
+	VisitPatchMessageByIdResponse(w http.ResponseWriter) error
 }
 
-type PatchMessagesId200JSONResponse Message
+type PatchMessageById200JSONResponse Message
 
-func (response PatchMessagesId200JSONResponse) VisitPatchMessagesIdResponse(w http.ResponseWriter) error {
+func (response PatchMessageById200JSONResponse) VisitPatchMessageByIdResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
@@ -210,10 +210,10 @@ type StrictServerInterface interface {
 	PostMessages(ctx context.Context, request PostMessagesRequestObject) (PostMessagesResponseObject, error)
 	// Delete message by id
 	// (DELETE /messages/{id})
-	DeleteMessagesId(ctx context.Context, request DeleteMessagesIdRequestObject) (DeleteMessagesIdResponseObject, error)
+	DeleteMessageById(ctx context.Context, request DeleteMessageByIdRequestObject) (DeleteMessageByIdResponseObject, error)
 	// Update message by id
 	// (PATCH /messages/{id})
-	PatchMessagesId(ctx context.Context, request PatchMessagesIdRequestObject) (PatchMessagesIdResponseObject, error)
+	PatchMessageById(ctx context.Context, request PatchMessageByIdRequestObject) (PatchMessageByIdResponseObject, error)
 }
 
 type StrictHandlerFunc = strictecho.StrictEchoHandlerFunc
@@ -280,56 +280,56 @@ func (sh *strictHandler) PostMessages(ctx echo.Context) error {
 	return nil
 }
 
-// DeleteMessagesId operation middleware
-func (sh *strictHandler) DeleteMessagesId(ctx echo.Context, id uint) error {
-	var request DeleteMessagesIdRequestObject
+// DeleteMessageById operation middleware
+func (sh *strictHandler) DeleteMessageById(ctx echo.Context, id uint) error {
+	var request DeleteMessageByIdRequestObject
 
 	request.Id = id
 
 	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteMessagesId(ctx.Request().Context(), request.(DeleteMessagesIdRequestObject))
+		return sh.ssi.DeleteMessageById(ctx.Request().Context(), request.(DeleteMessageByIdRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteMessagesId")
+		handler = middleware(handler, "DeleteMessageById")
 	}
 
 	response, err := handler(ctx, request)
 
 	if err != nil {
 		return err
-	} else if validResponse, ok := response.(DeleteMessagesIdResponseObject); ok {
-		return validResponse.VisitDeleteMessagesIdResponse(ctx.Response())
+	} else if validResponse, ok := response.(DeleteMessageByIdResponseObject); ok {
+		return validResponse.VisitDeleteMessageByIdResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
 	return nil
 }
 
-// PatchMessagesId operation middleware
-func (sh *strictHandler) PatchMessagesId(ctx echo.Context, id uint) error {
-	var request PatchMessagesIdRequestObject
+// PatchMessageById operation middleware
+func (sh *strictHandler) PatchMessageById(ctx echo.Context, id uint) error {
+	var request PatchMessageByIdRequestObject
 
 	request.Id = id
 
-	var body PatchMessagesIdJSONRequestBody
+	var body PatchMessageByIdJSONRequestBody
 	if err := ctx.Bind(&body); err != nil {
 		return err
 	}
 	request.Body = &body
 
 	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.PatchMessagesId(ctx.Request().Context(), request.(PatchMessagesIdRequestObject))
+		return sh.ssi.PatchMessageById(ctx.Request().Context(), request.(PatchMessageByIdRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PatchMessagesId")
+		handler = middleware(handler, "PatchMessageById")
 	}
 
 	response, err := handler(ctx, request)
 
 	if err != nil {
 		return err
-	} else if validResponse, ok := response.(PatchMessagesIdResponseObject); ok {
-		return validResponse.VisitPatchMessagesIdResponse(ctx.Response())
+	} else if validResponse, ok := response.(PatchMessageByIdResponseObject); ok {
+		return validResponse.VisitPatchMessageByIdResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

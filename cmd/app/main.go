@@ -5,7 +5,9 @@ import (
 	"stage/internal/database"
 	"stage/internal/handlers"
 	"stage/internal/messageservice"
+	"stage/internal/userservice"
 	"stage/internal/web/messages"
+	"stage/internal/web/users"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -13,23 +15,30 @@ import (
 
 func main() {
 	database.InitDB()
-	err := database.DB.AutoMigrate(&messageservice.Message{})
+	err := database.DB.AutoMigrate(&messageservice.Message{}, &userservice.User{})
 	if err != nil {
 		log.Fatalf("Migration err: %v", err)
 	}
 
-	repo := messageservice.NewMessageRepository(database.DB)
-	service := messageservice.NewService(repo)
+	messageRepo := messageservice.NewMessageRepository(database.DB)
+	messageService := messageservice.NewService(messageRepo)
 
-	handler := handlers.NewHandler(service)
+	userRepo := userservice.NewUserRepository(database.DB)
+	userService := userservice.NewService(userRepo)
+
+	messageHandler := handlers.NewMessageHandler(messageService)
+	userHandler := handlers.NewUserHandler(userService)
 
 	e := echo.New()
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	strictHandler := messages.NewStrictHandler(handler, nil)
-	messages.RegisterHandlers(e, strictHandler)
+	strictMessageHandler := messages.NewStrictHandler(messageHandler, nil)
+	messages.RegisterHandlers(e, strictMessageHandler)
+
+	strictUserHandler := users.NewStrictHandler(userHandler, nil)
+	users.RegisterHandlers(e, strictUserHandler)
 
 	if err := e.Start(":8080"); err != nil {
 		log.Fatalf("failed to start with err: %v", err)

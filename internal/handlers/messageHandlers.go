@@ -6,11 +6,11 @@ import (
 	"stage/internal/web/messages"
 )
 
-type Handler struct {
+type MessageHandler struct {
 	Service *messageservice.MessageService
 }
 
-func (h *Handler) GetMessages(_ context.Context, _ messages.GetMessagesRequestObject) (messages.GetMessagesResponseObject, error) {
+func (h *MessageHandler) GetMessages(_ context.Context, _ messages.GetMessagesRequestObject) (messages.GetMessagesResponseObject, error) {
 	allMessages, err := h.Service.GetAllMessages()
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func (h *Handler) GetMessages(_ context.Context, _ messages.GetMessagesRequestOb
 	return response, nil
 }
 
-func (h *Handler) PostMessages(_ context.Context, request messages.PostMessagesRequestObject) (messages.PostMessagesResponseObject, error) {
+func (h *MessageHandler) PostMessages(_ context.Context, request messages.PostMessagesRequestObject) (messages.PostMessagesResponseObject, error) {
 	messageRequest := request.Body
 
 	messageToCreate := messageservice.Message{
@@ -52,7 +52,7 @@ func (h *Handler) PostMessages(_ context.Context, request messages.PostMessagesR
 	return response, nil
 }
 
-func (h *Handler) PatchMessagesId(_ context.Context, request messages.PatchMessagesIdRequestObject) (messages.PatchMessagesIdResponseObject, error) {
+func (h *MessageHandler) PatchMessageById(_ context.Context, request messages.PatchMessageByIdRequestObject) (messages.PatchMessageByIdResponseObject, error) {
 	messageRequest := request.Body
 
 	messageToUpdate := messageservice.Message{
@@ -64,7 +64,7 @@ func (h *Handler) PatchMessagesId(_ context.Context, request messages.PatchMessa
 		return nil, err
 	}
 
-	response := messages.PatchMessagesId200JSONResponse{
+	response := messages.PatchMessageById200JSONResponse{
 		Id:     &updatedMessage.ID,
 		Task:   &updatedMessage.Task,
 		IsDone: &updatedMessage.IsDone,
@@ -73,17 +73,17 @@ func (h *Handler) PatchMessagesId(_ context.Context, request messages.PatchMessa
 	return response, nil
 }
 
-func (h *Handler) DeleteMessagesId(_ context.Context, request messages.DeleteMessagesIdRequestObject) (messages.DeleteMessagesIdResponseObject, error) {
+func (h *MessageHandler) DeleteMessageById(_ context.Context, request messages.DeleteMessageByIdRequestObject) (messages.DeleteMessageByIdResponseObject, error) {
 	err := h.Service.DeleteMessageByID(request.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	return messages.DeleteMessagesId204Response{}, err
+	return messages.DeleteMessageById204Response{}, err
 }
 
-func NewHandler(service *messageservice.MessageService) *Handler {
-	return &Handler{
+func NewMessageHandler(service *messageservice.MessageService) *MessageHandler {
+	return &MessageHandler{
 		Service: service,
 	}
 }
