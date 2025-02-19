@@ -19,6 +19,7 @@ type Message struct {
 	Id     *uint   `json:"id,omitempty"`
 	IsDone *bool   `json:"is_done,omitempty"`
 	Task   *string `json:"task,omitempty"`
+	UserId *uint   `json:"user_id,omitempty"`
 }
 
 // PostMessagesJSONRequestBody defines body for PostMessages for application/json ContentType.
@@ -29,12 +30,12 @@ type PatchMessageByIdJSONRequestBody = Message
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Get all messages
-	// (GET /messages)
-	GetMessages(ctx echo.Context) error
 	// Create a new message
 	// (POST /messages)
 	PostMessages(ctx echo.Context) error
+	// Get messages by user id
+	// (GET /messages/user/{id})
+	GetMessagesByUserId(ctx echo.Context, id uint) error
 	// Delete message by id
 	// (DELETE /messages/{id})
 	DeleteMessageById(ctx echo.Context, id uint) error
@@ -48,21 +49,28 @@ type ServerInterfaceWrapper struct {
 	Handler ServerInterface
 }
 
-// GetMessages converts echo context to params.
-func (w *ServerInterfaceWrapper) GetMessages(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.GetMessages(ctx)
-	return err
-}
-
 // PostMessages converts echo context to params.
 func (w *ServerInterfaceWrapper) PostMessages(ctx echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostMessages(ctx)
+	return err
+}
+
+// GetMessagesByUserId converts echo context to params.
+func (w *ServerInterfaceWrapper) GetMessagesByUserId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id uint
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetMessagesByUserId(ctx, id)
 	return err
 }
 
@@ -126,27 +134,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
-	router.GET(baseURL+"/messages", wrapper.GetMessages)
 	router.POST(baseURL+"/messages", wrapper.PostMessages)
+	router.GET(baseURL+"/messages/user/:id", wrapper.GetMessagesByUserId)
 	router.DELETE(baseURL+"/messages/:id", wrapper.DeleteMessageById)
 	router.PATCH(baseURL+"/messages/:id", wrapper.PatchMessageById)
 
-}
-
-type GetMessagesRequestObject struct {
-}
-
-type GetMessagesResponseObject interface {
-	VisitGetMessagesResponse(w http.ResponseWriter) error
-}
-
-type GetMessages200JSONResponse []Message
-
-func (response GetMessages200JSONResponse) VisitGetMessagesResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
 }
 
 type PostMessagesRequestObject struct {
@@ -162,6 +154,23 @@ type PostMessages201JSONResponse Message
 func (response PostMessages201JSONResponse) VisitPostMessagesResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetMessagesByUserIdRequestObject struct {
+	Id uint `json:"id"`
+}
+
+type GetMessagesByUserIdResponseObject interface {
+	VisitGetMessagesByUserIdResponse(w http.ResponseWriter) error
+}
+
+type GetMessagesByUserId200JSONResponse []Message
+
+func (response GetMessagesByUserId200JSONResponse) VisitGetMessagesByUserIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -202,12 +211,12 @@ func (response PatchMessageById200JSONResponse) VisitPatchMessageByIdResponse(w 
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Get all messages
-	// (GET /messages)
-	GetMessages(ctx context.Context, request GetMessagesRequestObject) (GetMessagesResponseObject, error)
 	// Create a new message
 	// (POST /messages)
 	PostMessages(ctx context.Context, request PostMessagesRequestObject) (PostMessagesResponseObject, error)
+	// Get messages by user id
+	// (GET /messages/user/{id})
+	GetMessagesByUserId(ctx context.Context, request GetMessagesByUserIdRequestObject) (GetMessagesByUserIdResponseObject, error)
 	// Delete message by id
 	// (DELETE /messages/{id})
 	DeleteMessageById(ctx context.Context, request DeleteMessageByIdRequestObject) (DeleteMessageByIdResponseObject, error)
@@ -226,29 +235,6 @@ func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareF
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
-}
-
-// GetMessages operation middleware
-func (sh *strictHandler) GetMessages(ctx echo.Context) error {
-	var request GetMessagesRequestObject
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetMessages(ctx.Request().Context(), request.(GetMessagesRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetMessages")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(GetMessagesResponseObject); ok {
-		return validResponse.VisitGetMessagesResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
 }
 
 // PostMessages operation middleware
@@ -274,6 +260,31 @@ func (sh *strictHandler) PostMessages(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(PostMessagesResponseObject); ok {
 		return validResponse.VisitPostMessagesResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetMessagesByUserId operation middleware
+func (sh *strictHandler) GetMessagesByUserId(ctx echo.Context, id uint) error {
+	var request GetMessagesByUserIdRequestObject
+
+	request.Id = id
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMessagesByUserId(ctx.Request().Context(), request.(GetMessagesByUserIdRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMessagesByUserId")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetMessagesByUserIdResponseObject); ok {
+		return validResponse.VisitGetMessagesByUserIdResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

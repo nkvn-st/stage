@@ -1,12 +1,17 @@
 package userservice
 
-import "gorm.io/gorm"
+import (
+	"stage/internal/messageservice"
+
+	"gorm.io/gorm"
+)
 
 type UserRepository interface {
 	CreateUser(user User) (User, error)
 	GetAllUsers() ([]User, error)
 	UpdateUserByID(id uint, user User) (User, error)
 	DeleteUserByID(id uint) error
+	GetMessagesForUser(userId uint) ([]messageservice.Message, error)
 }
 
 type userRepository struct {
@@ -45,4 +50,10 @@ func (r *userRepository) UpdateUserByID(id uint, user User) (User, error) {
 func (r *userRepository) DeleteUserByID(id uint) error {
 	err := r.db.Unscoped().Delete(&User{}, id).Error
 	return err
+}
+
+func (r *userRepository) GetMessagesForUser(userId uint) ([]messageservice.Message, error) {
+	var Messages []messageservice.Message
+	err := r.db.Where("user_id = ?", userId).Find(&Messages).Error
+	return Messages, err
 }

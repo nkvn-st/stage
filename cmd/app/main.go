@@ -15,7 +15,7 @@ import (
 
 func main() {
 	database.InitDB()
-	err := database.DB.AutoMigrate(&messageservice.Message{}, &userservice.User{})
+	err := database.DB.AutoMigrate(&userservice.User{}, &messageservice.Message{})
 	if err != nil {
 		log.Fatalf("Migration err: %v", err)
 	}
@@ -26,7 +26,7 @@ func main() {
 	userRepo := userservice.NewUserRepository(database.DB)
 	userService := userservice.NewService(userRepo)
 
-	messageHandler := handlers.NewMessageHandler(messageService)
+	messageHandler := handlers.NewMessageHandler(messageService, userService)
 	userHandler := handlers.NewUserHandler(userService)
 
 	e := echo.New()

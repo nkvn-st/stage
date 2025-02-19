@@ -1,5 +1,7 @@
 package userservice
 
+import "stage/internal/messageservice"
+
 type UserService struct {
 	repo UserRepository
 }
@@ -22,4 +24,8 @@ func (s *UserService) UpdateUserByID(id uint, user User) (User, error) {
 
 func (s *UserService) DeleteUserByID(id uint) error {
 	return s.repo.DeleteUserByID(id)
+}
+
+func (s *UserService) GetMessagesForUser(userID uint) ([]messageservice.Message, error) {
+	return s.repo.GetMessagesForUser(userID)
 }
