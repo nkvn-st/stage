@@ -3,7 +3,7 @@ info:
   title: API
   version: 1.0.0
 paths:
-  /messages/user/{id}:
+  /users/{user_id}/messages:
     get:
       summary: Get messages by user id
       operationId: GetMessagesByUserId
@@ -11,7 +11,7 @@ paths:
         - messages
       parameters:
         - in: path
-          name: id
+          name: user_id
           required: true
           schema:
             type: integer

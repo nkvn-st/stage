@@ -13,7 +13,7 @@ type MessageHandler struct {
 }
 
 func (h *MessageHandler) GetMessagesByUserId(_ context.Context, request messages.GetMessagesByUserIdRequestObject) (messages.GetMessagesByUserIdResponseObject, error) {
-	allMessages, err := h.UserService.GetMessagesForUser(request.Id)
+	allMessages, err := h.UserService.GetMessagesForUser(request.UserId)
 	if err != nil {
 		return nil, err
 	}

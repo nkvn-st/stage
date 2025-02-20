@@ -8,7 +8,7 @@ import (
 
 type User struct {
 	gorm.Model
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Messages []messageservice.Message
+	Email    string                   `json:"email"`
+	Password string                   `json:"password"`
+	Messages []messageservice.Message `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE;"`
 }
